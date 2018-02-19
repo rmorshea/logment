@@ -7,7 +7,7 @@ from importlib.util import spec_from_file_location
 
 
 LOGGERS = []
-LEVELS = {'?': 10, ':': 20, '!': 30}
+SYMBOLS = {'?': 1, ':': 2, '!': 3}
 
 
 def handler(function):
@@ -79,10 +79,10 @@ class _Loader(Loader):
             stripped = line.lstrip()
             if stripped.startswith('#'):
                 symbol, message = stripped[1:].split(' ', 1)
-                if symbol in LEVELS:
+                if symbol in SYMBOLS:
                     index = len(line) - len(stripped)
                     line = line[:index] + form.format(
-                        level=LEVELS[symbol],
+                        level=SYMBOLS[symbol],
                         message=message)
             augmented.append(line)
 
