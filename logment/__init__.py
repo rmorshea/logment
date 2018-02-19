@@ -5,7 +5,9 @@ import inspect
 from importlib.abc import MetaPathFinder, Loader
 from importlib.util import spec_from_file_location
 
+
 LOGGERS = []
+LEVELS = {'?': 10, ':': 20, '!': 30}
 
 
 def handler(function):
@@ -70,17 +72,18 @@ class _Loader(Loader):
         with open(self.filename) as f:
             text = f.read()
 
+        form = "__log__({level}, '{message}')"
         augmented = ['from logment import __log__', '']
+
         for line in text.split('\n'):
-            indent_strip = line.lstrip()
-            if indent_strip.startswith('#'):
-                comment_strip = indent_strip.lstrip('#')
-                if comment_strip.startswith(":"):
-                    level = len(indent_strip.split(':', 1)[0])
-                    all_stripped = comment_strip[1:].lstrip()
-                    index = len(line) - len(indent_strip)
-                    message = '__log__(%s, %r)' % (level, all_stripped)
-                    line = line[:index] + message
+            stripped = line.lstrip()
+            if stripped.startswith('#'):
+                symbol, message = stripped[1:].split(' ', 1)
+                if symbol in LEVELS:
+                    index = len(line) - len(stripped)
+                    line = line[:index] + form.format(
+                        level=LEVELS[symbol],
+                        message=message)
             augmented.append(line)
 
         augmented = '\n'.join(augmented)
