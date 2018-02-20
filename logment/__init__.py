@@ -1,7 +1,10 @@
 import os
+import imp
 import sys
+import marshal
 import logging
 import inspect
+from uuid import uuid1
 from importlib.abc import MetaPathFinder, Loader
 from importlib.util import spec_from_file_location
 
@@ -44,7 +47,7 @@ def level(symbol, level=None, name=None):
         logging.addLevelName(level, name)
 
 
-def __log__(module, level, message):
+def log(module, level, message):
     for function in _loggers:
         function(module, level, message)
 
@@ -77,7 +80,6 @@ class _Finder(MetaPathFinder):
         # we don't know how to import this
         return None
 
-
 class _Loader(Loader):
 
     def __init__(self, filename):
@@ -90,8 +92,18 @@ class _Loader(Loader):
         with open(self.filename) as f:
             text = f.read()
 
-        augmented = ['from logment import __log__', '']
-        form = "__log__(__name__, {level}, f{message})"
+        code = compile(self._augmented(text), self.filename, 'exec')
+
+        with open(self._cache(module), 'wb+') as f:
+            f.write(imp.get_magic())
+            marshal.dump(code, f)
+
+        exec(code, vars(module))
+
+    def _augmented(self, text):
+        unique = int(uuid1()) # prevent namespace clash
+        form = "__log%s(__name__, {level}, f{message})" % unique
+        rewrite = 'from logment import log as __log%s\n\n' % unique
 
         for line in text.split('\n'):
             indent, *comment = line.split('#', 1)
@@ -102,10 +114,27 @@ class _Loader(Loader):
                     line = indent + form.format(
                         level=_symbols[symbol],
                         message=repr(message))
-            augmented.append(line)
+            rewrite += line + '\n'
 
-        augmented = '\n'.join(augmented)
-        exec(augmented, vars(module))
+        return rewrite
+
+    def _cache(self, module):
+        if hasattr(imp, "get_tag"):
+            tag = imp.get_tag() + "-logment"
+        else:
+            if hasattr(sys, "pypy_version_info"):
+                impl = "pypy"
+            elif sys.platform == "java":
+                impl = "jython"
+            else:
+                impl = "cpython"
+            ver = sys.version_info
+            tag = "%s-%s%s-logment" % (impl, ver[0], ver[1])
+        ext = ".py" + (__debug__ and "c" or "o")
+        tail = "." + tag + ext
+        return os.path.join(
+            os.path.dirname(self.filename),
+            '__pycache__', module.__name__ + tail)
 
 
 sys.meta_path.insert(0, _Finder())
