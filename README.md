@@ -1,16 +1,20 @@
 # Logment
 
+```bash
+pip install logment
+```
+
 A library for Python 3 that logs augmented comments (logments).
 
-A logment is an comment line of the form `#<symbol> <message>` where a known `symbol` corresponds to a log level.
+A logment is a comment line of the form `#<symbol> <message>` where a known `symbol` corresponds to a log level.
 
-| Symbol | Level | Name    | Example                   |
-| ------ | ----- | ------- | ------------------------- |
-| `?`    | 10    | DEBUG   | `#? my debug message`     |
-| `:`    | 20    | INFO    | `#: my info message`      |
-| `!`    | 30    | WARNING | `#! my warning message`   |
-| `!!`   | 40    | ERROR   | `#!! my error message`    |
-| `!!!`  | 50    | FAILURE | `#!!! my failure message` |
+| Symbol | Level | Name     | Example                    |
+| ------ | ----- | -------- | -------------------------- |
+| `?`    | 10    | DEBUG    | `#? my debug message`      |
+| `:`    | 20    | INFO     | `#: my info message`       |
+| `!`    | 30    | WARNING  | `#! my warning message`    |
+| `!!`   | 40    | ERROR    | `#!! my error message`     |
+| `!!!`  | 50    | CRITICAL | `#!!! my critical message` |
 
 # The Basics
 
@@ -24,7 +28,7 @@ logment.register()
 add(1, 2) # logs a warning
 ```
 
-In `test.py`:
+Inside `test.add` we warn using a comment that starts with `!` - it can references variables via [f-string](https://www.python.org/dev/peps/pep-0498/) syntax.
 
 ```python
 def add(x, y):
@@ -53,7 +57,7 @@ def printer(module, level, message):
   print(f'{module}[{level}] {message}')
 ```
 
-# Adding Symbolic Levels
+# Adding New Levels
 
 Create a level with `logment.level(symbol, level, name)`.
 
@@ -64,5 +68,5 @@ logment.level('$$$', 0, 'MONEY!')
 Get the level and name for a symbol:
 
 ```python
-level, name = logment.level('$$$')
+assert logment.level('$$$') == (0, 'MONEY!')
 ```
