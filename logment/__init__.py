@@ -6,29 +6,47 @@ from importlib.abc import MetaPathFinder, Loader
 from importlib.util import spec_from_file_location
 
 
-LOGGERS = []
-SYMBOLS = {'?': 1, ':': 2, '!': 3}
+_loggers = []
+_symbols = {
+    '?': 10,
+    ':': 20,
+    '!': 30,
+    '!!': 40,
+    '!!!': 50,
+}
 
 
-def handler(function):
-    LOGGERS.append(function)
+def DEFAULT(module, level, message):
+    logger = logging.getLogger(module)
+    logger.log(level, message)
+
+
+def register(function=DEFAULT):
+    """Add a new logment handler."""
+    if function not in _loggers:
+        _loggers.append(function)
     return function
 
 
 def remove(function):
-    LOGGERS.remove(function)
+    _loggers.remove(function)
 
 
-def DEFAULT(frame, level, message):
-    logger = logging.getLogger(frame.f_globals.get('__name__'))
-    message = message.format(**frame.f_locals)
-    logger.log(level * 10, message)
+def level(symbol, level=None, name=None):
+    if name is None and level is None:
+        level = _symbols[symbol]
+        name = logging.getLevelName(level)
+        return level, name
+    else:
+        if ' ' in symbol:
+            raise ValueError("Level symbols cannot contain spaces.")
+        _symbols[symbol] = level
+        logging.addLevelName(level, name)
 
 
-def __log__(level, message):
-    frame = inspect.currentframe().f_back
-    for l in LOGGERS:
-        l(frame, level, message)
+def __log__(module, level, message):
+    for function in _loggers:
+        function(module, level, message)
 
 
 class _Finder(MetaPathFinder):
@@ -72,18 +90,18 @@ class _Loader(Loader):
         with open(self.filename) as f:
             text = f.read()
 
-        form = "__log__({level}, '{message}')"
         augmented = ['from logment import __log__', '']
+        form = "__log__(__name__, {level}, f{message})"
 
         for line in text.split('\n'):
-            stripped = line.lstrip()
-            if stripped.startswith('#'):
-                symbol, message = stripped[1:].split(' ', 1)
-                if symbol in SYMBOLS:
-                    index = len(line) - len(stripped)
-                    line = line[:index] + form.format(
-                        level=SYMBOLS[symbol],
-                        message=message)
+            indent, *comment = line.split('#', 1)
+            if not indent.strip() and comment:
+                symbol, message = comment[0].split(' ', 1)
+                if symbol in _symbols:
+                    index = len(line) - len(indent)
+                    line = indent + form.format(
+                        level=_symbols[symbol],
+                        message=repr(message))
             augmented.append(line)
 
         augmented = '\n'.join(augmented)

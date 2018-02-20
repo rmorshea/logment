@@ -1,10 +1,28 @@
 # Logment
 
-A logging library for Python 3 that uses augmented comments (logments). Simply import `logment`, and if the first character of your comment is a
-`?`, `:`, or `!` it will be converted to a corresponding debug, info, or warning log
-statement.
+A library for Python 3 that logs augmented comments (logments).
 
-# Basic Usage
+A logment is an comment line of the form `#<symbol> <message>` where a known `symbol` corresponds to a log level.
+
+| Symbol | Level | Name    | Example                   |
+| ------ | ----- | ------- | ------------------------- |
+| `?`    | 10    | DEBUG   | `#? my debug message`     |
+| `:`    | 20    | INFO    | `#: my info message`      |
+| `!`    | 30    | WARNING | `#! my warning message`   |
+| `!!`   | 40    | ERROR   | `#!! my error message`    |
+| `!!!`  | 50    | FAILURE | `#!!! my failure message` |
+
+# The Basics
+
+To use `logment` simply import it before the modules you'd like to augment:
+
+```python
+import logment
+from test import add
+logment.register()
+
+add(1, 2) # logs a warning
+```
 
 In `test.py`:
 
@@ -14,41 +32,37 @@ def add(x, y):
     return x + y
 ```
 
-In `run.py`
+# Register Handlers
 
-```python
-import logment
-from test import add
-logment.handler(logment.DEFAULT)
+A handler is a function with the signature `(module, level, message)`.
 
-add(1, 2) # will warning about adding.
-```
-
-# Handler
-
-A handler is a function with the signature `(frame, level, message)`.
-
-+ `frame` : The current [stack frame](https://docs.python.org/3/library/inspect.html#inspect.currentframe).
-+ `level` : A value representing the log level (either 1, 2, or 3 by default).
++ `module` : The name of the module where the message was logged.
++ `level` : A value representing the logging level (e.g. 10 is DEBUG).
 + `message` : The text content of the comment.
 
 Handlers can be added using `logment.handler`:
 
 ```python
-@logment.handler
-def printer(frame, level, message):
-  name = frame.f_globals['__name__']
-  level = ['DEBUG', 'INFO', 'WARNING'][level - 1]
-  message = message.format(**frame.f_locals)
-  print(f'{name}[{level}] {message}')
+import logment
+import logging
+
+
+@logment.register
+def printer(module, level, message):
+  level = logging.getLevelName(level)
+  print(f'{module}[{level}] {message}')
 ```
 
-# Symbolic Levels
+# Adding Symbolic Levels
 
-A mapping of symbols to levels can be found in `logment.SYMBOLS`.
+Create a level with `logment.level(symbol, level, name)`.
 
 ```python
-SYMBOLS = {'?': 1, ':': 2, '!': 3}
+logment.level('$$$', 0, 'MONEY!')
 ```
 
-For now, directly add them (symbols containing spaces will never match).
+Get the level and name for a symbol:
+
+```python
+level, name = logment.level('$$$')
+```
