@@ -8,7 +8,7 @@ from setuptools import find_packages
 
 url = "https://github.com/rmorshea/logment"
 project = "logment"
-version = "0.0.4"
+version = "0.1.0"
 author = "Ryan Morshead"
 email = "ryan.morshead@gmail.com"
 summary = "logging as commentary"
